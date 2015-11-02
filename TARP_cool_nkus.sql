@@ -179,18 +179,16 @@ WHERE a.flag_trial = 1
 		-- 75 day 'Cool' NKU Filter Logic
 		----
 		(EXISTS (SELECT c.phone_number FROM cool_nkus c WHERE c.phone_number = i.did)
-
+	
 		-- phone number age over 75 days
 		AND DATEDIFF(day,p.date_created, CURRENT_DATE) >= 75
-
+		
 		-- account age over 75 days
 		AND DATEDIFF(day,a.date_created, CURRENT_DATE) >= 75
 
 		-- phone number does not have any utilization in the past 75 days
-		AND NOT EXISTS
+		AND NOT EXISTS 
 			(SELECT 1
 			FROM phone_number_utilization u
 			WHERE p.phone_number = u.phone_number AND u.date_created::date >= CURRENT_DATE - INTERVAL '75 days')
 		)
-
-	

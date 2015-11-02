@@ -153,13 +153,8 @@ WITH hot_nkus AS (
 				'+6189',
 				'+6531',
 				'+8526')
-),
-
-cool_nkus AS (
-	SELECT DISTINCT friendly_name as phone_number, nku
-	FROM numbers_with_nku
-	WHERE NOT EXISTS (SELECT DISTINCT nku FROM hot_nkus)
 )
+
 
 SELECT
 	p.phone_number as phone_number,
@@ -177,31 +172,22 @@ FROM phone_numbers p join accounts a on p.account_sid = a.sid
 WHERE a.flag_trial = 1
 	AND p.active = 1
 	AND p.inbound = 1
-
-	-- account age over 90 days
-	AND DATEDIFF(day,a.date_created, CURRENT_DATE) >= 75
+	AND i.status = 3
 
 	AND
-	-- Logic to seperate HOT_NKUs versus COOL_NKUs
-	((EXISTS (SELECT phone_number FROM hot_nkus)
-
-		-- phone number age over 90 days
-		AND DATEDIFF(day,p.date_created, CURRENT_DATE) >= 45
-		-- phone number does not have any utilization in the past 90 days
-		AND NOT EXISTS
-			(SELECT 1
-			FROM phone_number_utilization u
-			WHERE p.phone_number = u.phone_number AND u.date_created::date >= CURRENT_DATE - INTERVAL '45 days'))
-
-	OR (EXISTS (SELECT phone_number FROM cool_nkus)
-
-		-- phone number age over 90 days
-		AND DATEDIFF(day,p.date_created, CURRENT_DATE) >= 75)
-
-		-- phone number does not have any utilization in the past 90 days
-		AND NOT EXISTS
-			(SELECT 1
-			FROM phone_number_utilization u
-			WHERE p.phone_number = u.phone_number AND u.date_created::date >= CURRENT_DATE - INTERVAL '75 days'))
-
+		----
+		-- 45 day 'Hot' NKU Filter Logic
+		----
+		(EXISTS (SELECT h.phone_number FROM hot_nkus h WHERE h.phone_number = i.did)
 	
+		-- phone number age over 45 days
+		AND DATEDIFF(day,p.date_created, CURRENT_DATE) >= 45
+
+		-- account age over 45 days
+		AND DATEDIFF(day,a.date_created, CURRENT_DATE) >= 45)
+
+		-- phone number does not have any utilization in the past 45 days
+		AND NOT EXISTS 
+			(SELECT 1
+			FROM phone_number_utilization u
+			WHERE p.phone_number = u.phone_number AND u.date_created::date >= CURRENT_DATE - INTERVAL '45 days')
